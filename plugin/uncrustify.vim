@@ -58,20 +58,21 @@ func! s:quote(str)
 endfun
 
 func! Uncrustify2(...)
-  let line1 = get(a:000, 1, '1')
-  let line2 = get(a:000, 2, '$')
+  let l:lang = get(a:000, 0, 'c')
+  let l:line1 = get(a:000, 1, '1')
+  let l:line2 = get(a:000, 2, '$')
 
   " Get content from the files
-  let content = getline(line1, line2)
+  let content = getline(l:line1, l:line2)
 
   " Length of lines before beautify
-  let lines_length = len(getline(line1, line2))
+  let lines_length = len(getline(l:line1, l:line2))
 
   " Write content to temporary file
   call writefile(content, g:tmp_file_uncrustify)
-  let tmp_file_uncrustify_arg = s:quote(g:tmp_file_uncrustify)
+  let l:tmp_file_uncrustify_arg = s:quote(g:tmp_file_uncrustify)
 
-  let cmd = "uncrustify -q -l c --frag -c " . g:uncrustify_cfg_file_path . " -f ".tmp_file_uncrustify_arg
+  let cmd = "uncrustify -q -l " . l:lang . " --frag -c " . g:uncrustify_cfg_file_path . " -f " . l:tmp_file_uncrustify_arg
   let result = system(cmd)
   let lines_uncrustify = split(result, "\n")
 
@@ -86,5 +87,5 @@ func! Uncrustify2(...)
 endfunc
 
 func! RangeUncrustify(language) range
-  return call('Uncrustify2', extend(['c'], [a:firstline, a:lastline]))
+  return call('Uncrustify2', extend([a:language], [a:firstline, a:lastline]))
 endfunc
