@@ -2,12 +2,18 @@
 
 ## Installation
 
-### Installing with pathogen
+### With pathogen
+
+Download .tar.gz package, and extract it into ~/.vim/bundle or with `git`:
 
 ```
 cd ~/.vim/bundle
 git clone https://github.com/Cofyc/vim-uncrustify.git
 ```
+
+### Without pathogen
+
+Simply extract package into your ~/.vim folder.
 
 ## Usage
 
