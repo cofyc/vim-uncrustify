@@ -8,25 +8,16 @@ if !exists("g:uncrustify_debug")
   let g:uncrustify_debug = 0
 endif
 
-" temporary file for content
-if !exists('g:tmp_file_uncrustify')
-  let g:tmp_file_uncrustify = fnameescape(tempname())
-endif
-
 " Specify path to your Uncrustify configuration file.
 let g:uncrustify_cfg_file_path =
     \ shellescape(fnamemodify('~/.uncrustify.cfg', ':p'))
 
-" Function: s:UncrustifyDebug(level, text) {{{2
-"
-" Output debug message, if this message has high enough importance.
-"
-function! s:UncrustifyDebug(level, text)
-  if (g:uncrustify_debug >= a:level)
+" Log debug message
+function! s:UncrustifyDebug(text)
+  if g:uncrustify_debug
     echom "uncrustify: " . a:text
   endif
 endfunction
-
 
 " Don't forget to add Uncrustify executable to $PATH (on Unix) or
 " %PATH% (on Windows) for this command to work.
@@ -56,14 +47,15 @@ func! Uncrustify(...)
   let lines_length = len(getline(l:start, l:end))
 
   " Write content to temporary file
-  call writefile(content, g:tmp_file_uncrustify)
-  let l:tmp_file_uncrustify_arg = s:quote(g:tmp_file_uncrustify)
+  let l:tmpfile = tempname() . '.' . l:lang
+  call s:UncrustifyDebug("tmpfile: " . l:tmpfile)
+  call writefile(content, l:tmpfile)
 
-  let cmd = "uncrustify -q -l " . l:lang . " --frag -c " . g:uncrustify_cfg_file_path . " -f " . l:tmp_file_uncrustify_arg
+  let cmd = "uncrustify -q -l " . l:lang . " --frag -c " . g:uncrustify_cfg_file_path . " -f " . l:tmpfile
 
-  call s:UncrustifyDebug(2, "cmd: ".cmd)
+  call s:UncrustifyDebug("cmd: ".cmd)
   let result = system(cmd)
-  call s:UncrustifyDebug(2, "shell_error: ". v:shell_error)
+  call s:UncrustifyDebug("shell_error: ". v:shell_error)
 
   if v:shell_error == 0
     let lines_uncrustify = split(result, "\n")
@@ -83,14 +75,10 @@ func! Uncrustify(...)
 
   " Restore the previous cursor position.
   call setpos('.', cursor_position)
-endfunc
 
-" Quoting string
-" @param {String} str Any string
-" @return {String} The quoted string
-func! s:quote(str)
-  return '"'.escape(a:str,'"').'"'
-endfun
+  " Delete the temporary file
+  call delete(l:tmpfile)
+endfunc
 
 func! RangeUncrustify(language) range
   return call('Uncrustify', extend([a:language], [a:firstline, a:lastline]))
