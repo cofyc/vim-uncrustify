@@ -3,6 +3,11 @@
 " Author: Yecheng Fu <cofyc.jackson@gmail.com>
 "
 
+" Define default "g:uncrustify_debug" {{{2
+if !exists("g:uncrustify_debug")
+  let g:uncrustify_debug = 0
+endif
+
 " temporary file for content
 if !exists('g:tmp_file_uncrustify')
   let g:tmp_file_uncrustify = fnameescape(tempname())
@@ -12,10 +17,27 @@ endif
 let g:uncrustify_cfg_file_path =
     \ shellescape(fnamemodify('~/.uncrustify.cfg', ':p'))
 
+" Function: s:UncrustifyDebug(level, text) {{{2
+"
+" Output debug message, if this message has high enough importance.
+"
+function! s:UncrustifyDebug(level, text)
+  if (g:uncrustify_debug >= a:level)
+    echom "uncrustify: " . a:text
+  endif
+endfunction
+
+
+" Don't forget to add Uncrustify executable to $PATH (on Unix) or
+" %PATH% (on Windows) for this command to work.
 " http://stackoverflow.com/a/15513829/288089
 " Restore cursor position, window position, and last search after running a
 " command.
-func! s:Preserve(command)
+func! Uncrustify(...)
+  let l:lang = get(a:000, 0, 'c')
+  let l:start = get(a:000, 1, '1')
+  let l:end = get(a:000, 2, '$')
+
   " Save the last search.
   let search = @/
 
@@ -27,8 +49,30 @@ func! s:Preserve(command)
   let window_position = getpos('.')
   call setpos('.', cursor_position)
 
-  " Execute the command.
-  execute a:command
+  " Get content which need to format
+  let content = getline(l:start, l:end)
+
+  " Length of lines before formating
+  let lines_length = len(getline(l:start, l:end))
+
+  " Write content to temporary file
+  call writefile(content, g:tmp_file_uncrustify)
+  let l:tmp_file_uncrustify_arg = s:quote(g:tmp_file_uncrustify)
+
+  let cmd = "uncrustify -q -l " . l:lang . " --frag -c " . g:uncrustify_cfg_file_path . " -f " . l:tmp_file_uncrustify_arg
+
+  call s:UncrustifyDebug(2, "cmd: ".cmd)
+  let result = system(cmd)
+  call s:UncrustifyDebug(2, "shell_error: ". v:shell_error)
+
+  if v:shell_error == 0
+    let lines_uncrustify = split(result, "\n")
+    silent exec l:start.",".l:end."j"
+    call setline(l:start, lines_uncrustify[0])
+    call append(l:start, lines_uncrustify[1:])
+  else
+    echom "uncrustify: failed to run, exit code: " . v:shell_error
+  endif
 
   " Restore the last search.
   let @/ = search
@@ -41,15 +85,6 @@ func! s:Preserve(command)
   call setpos('.', cursor_position)
 endfunc
 
-" Don't forget to add Uncrustify executable to $PATH (on Unix) or 
-" %PATH% (on Windows) for this command to work.
-func! Uncrustify(language)
-  call s:Preserve(':silent %!uncrustify'
-      \ . ' -q '
-      \ . ' -l ' . a:language
-      \ . ' -c ' . g:uncrustify_cfg_file_path)
-endfunc
-
 " Quoting string
 " @param {String} str Any string
 " @return {String} The quoted string
@@ -57,35 +92,6 @@ func! s:quote(str)
   return '"'.escape(a:str,'"').'"'
 endfun
 
-func! Uncrustify2(...)
-  let l:lang = get(a:000, 0, 'c')
-  let l:line1 = get(a:000, 1, '1')
-  let l:line2 = get(a:000, 2, '$')
-
-  " Get content from the files
-  let content = getline(l:line1, l:line2)
-
-  " Length of lines before beautify
-  let lines_length = len(getline(l:line1, l:line2))
-
-  " Write content to temporary file
-  call writefile(content, g:tmp_file_uncrustify)
-  let l:tmp_file_uncrustify_arg = s:quote(g:tmp_file_uncrustify)
-
-  let cmd = "uncrustify -q -l " . l:lang . " --frag -c " . g:uncrustify_cfg_file_path . " -f " . l:tmp_file_uncrustify_arg
-  let result = system(cmd)
-  let lines_uncrustify = split(result, "\n")
-
-  if !len(lines_uncrustify)
-      return result
-  endif
-
-  silent exec line1.",".line2."j"
-  call setline(line1, lines_uncrustify[0])
-  call append(line1, lines_uncrustify[1:])
-  return result
-endfunc
-
 func! RangeUncrustify(language) range
-  return call('Uncrustify2', extend([a:language], [a:firstline, a:lastline]))
+  return call('Uncrustify', extend([a:language], [a:firstline, a:lastline]))
 endfunc
