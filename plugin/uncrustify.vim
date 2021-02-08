@@ -9,8 +9,7 @@ if !exists("g:uncrustify_debug")
 endif
 
 " Specify path to your Uncrustify configuration file.
-let g:uncrustify_cfg_file_path =
-    \ shellescape(fnamemodify('~/.uncrustify.cfg', ':p'))
+let g:uncrustify_cfg_file_path = "auto"
 
 " Log debug message
 function! s:UncrustifyDebug(text)
@@ -51,7 +50,21 @@ func! Uncrustify(...)
   call s:UncrustifyDebug("tmpfile: " . l:tmpfile)
   call writefile(content, l:tmpfile)
 
-  let cmd = "uncrustify -q -l " . l:lang . " --frag -c " . g:uncrustify_cfg_file_path . " -f " . l:tmpfile
+  " Detect configuration file
+  let l:cfgfile = ""
+  if g:uncrustify_cfg_file_path == "auto"
+    let l:cwdcfg = ".uncrustify.cfg"
+    let l:homecfg = shellescape(fnamemodify('~/.uncrustify.cfg', ':p'))
+    if filereadable(l:cwdcfg)
+      let l:cfgfile = l:cwdcfg
+    elseif filereadable(l:homecfg)
+      let l:cfgfile = l:homecfg
+    endif
+  else
+    let l:cfgfile = g:uncrustify_cfg_file_path
+  endif
+
+  let cmd = "uncrustify -q -l " . l:lang . " -c " . l:cfgfile . " -f " . l:tmpfile
 
   call s:UncrustifyDebug("cmd: ".cmd)
   let result = system(cmd)
