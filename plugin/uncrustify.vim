@@ -64,14 +64,14 @@ func! Uncrustify(...)
     let l:cfgfile = g:uncrustify_cfg_file_path
   endif
 
-  let cmd = "uncrustify -q -l " . l:lang . " -c " . l:cfgfile . " -f " . l:tmpfile
+  let cmd = "uncrustify -q -l " . l:lang . " -c " . l:cfgfile . " -f " . l:tmpfile . " -o " . l:tmpfile
 
   call s:UncrustifyDebug("cmd: ".cmd)
-  let result = system(cmd)
+  call system(cmd)
   call s:UncrustifyDebug("shell_error: ". v:shell_error)
 
   if v:shell_error == 0
-    let lines_uncrustify = split(result, "\n")
+    let lines_uncrustify = readfile(l:tmpfile)
     silent exec l:start.",".l:end."j"
     call setline(l:start, lines_uncrustify[0])
     call append(l:start, lines_uncrustify[1:])
