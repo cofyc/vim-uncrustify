@@ -55,8 +55,11 @@ func! Uncrustify(...)
   if g:uncrustify_cfg_file_path == "auto"
     let l:cwdcfg = ".uncrustify.cfg"
     let l:homecfg = shellescape(fnamemodify('~/.uncrustify.cfg', ':p'))
+    let l:gitcfg = substitute(system("git rev-parse --show-toplevel"), "\n", "", "g") . "/.uncrustify.cfg"
     if filereadable(l:cwdcfg)
       let l:cfgfile = l:cwdcfg
+    elseif filereadable(l:gitcfg)
+      let l:cfgfile = l:gitcfg
     elseif filereadable(l:homecfg)
       let l:cfgfile = l:homecfg
     endif
